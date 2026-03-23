@@ -1,0 +1,42 @@
+---
+description: Automatically process pending Trello tasks from cursor-trello-agent
+globs: TRELLO_TASKS.md
+alwaysApply: true
+---
+
+# Trello Task Auto-Processor
+
+At the START of every interaction, check `TRELLO_TASKS.md` for sections marked `## PENDING`.
+If any PENDING tasks exist, immediately begin processing them — do NOT wait for the user to ask.
+
+## 1. Parse the PENDING block
+
+Extract from each block:
+- `cardId` — use with Trello MCP to fetch full card details
+- `boardId` — use with `set_active_board` (if not "unknown", otherwise discover via `list_boards` + `boardName`)
+- `cardName` — card title (for reference)
+
+## 2. Execute the trello-dev-workflow
+
+Since the webhook already identified the card, connect to the Trello MCP and:
+
+1. `set_active_board` with the `boardId` (or find the board by name if ID is unknown)
+2. `get_lists` to discover list IDs (To Do, In Progress, Testing, Ready [Developed])
+3. `get_card` with the `cardId` and `includeMarkdown: true`
+4. Assess the card requirements from its title, description, checklists, and comments
+5. Plan the implementation using the TodoWrite tool
+6. Implement the changes on a feature branch
+7. Validate (lint, type-check, build, tests)
+8. Commit and push
+9. Move the card to "Ready [Developed]" and add a summary comment
+
+## 3. Mark as processed
+
+After completing all phases, update TRELLO_TASKS.md:
+- Change `## PENDING` to `## DONE` for that block
+
+## Rules
+
+- Process ONE card at a time — finish all phases before starting the next
+- Never skip validation
+- If the card has no actionable dev work, mark DONE and note why
